@@ -121,6 +121,7 @@ func (wp workerPool) Stop() {
 func (wp workerPool) closeChannels(quit chan struct{}) {
 	close(quit)
 	close(wp.quiting)
+	close(wp.jobPool)
 }
 
 type (
