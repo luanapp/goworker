@@ -108,13 +108,13 @@ func (wp workerPool) Stop() {
 	}
 
 	quit := make(chan struct{}, 1)
-	go func() {
-		<-quit
+	go func(q chan struct{}) {
+		<-q
 		fmt.Println("stop finalized... closing channels")
-		wp.closeChannels(quit)
+		wp.closeChannels(q)
 		wp.ctxCancel()
 		wp.done <- struct{}{}
-	}()
+	}(quit)
 	wp.quiting <- quit
 }
 
