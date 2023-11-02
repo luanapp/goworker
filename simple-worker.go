@@ -92,7 +92,7 @@ func (wp workerPool) Start() chan struct{} {
 
 func (wp workerPool) AddJobs(jobs ...JobRunner) {
 	if !wp.running.Load() {
-		fmt.Println("worker not started")
+		fmt.Println("worker not running")
 		return
 	}
 
@@ -107,7 +107,7 @@ func (wp workerPool) Stop() {
 		return
 	}
 
-	quit := make(chan struct{}, 1)
+	quit := make(chan struct{})
 	go func(q chan struct{}) {
 		<-q
 		fmt.Println("stop finalized... closing channels")

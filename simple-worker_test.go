@@ -9,13 +9,13 @@ import (
 )
 
 func TestRunTaskBeforeStarting(t *testing.T) {
-	workerPool := NewWorkerPool(
+	pool := NewWorkerPool(
 		WithContext(context.Background()),
 		WithIdleTimeout(3*time.Second),
 		WithPoolSize(2),
 	)
 
-	workerPool.AddJobs(
+	pool.AddJobs(
 		func(ctx context.Context) error {
 			fmt.Println("job 1 running")
 			time.Sleep(200 * time.Millisecond)
@@ -36,27 +36,27 @@ func TestRunTaskBeforeStarting(t *testing.T) {
 }
 
 func TestMultipleStartCalls(t *testing.T) {
-	workerPool := NewWorkerPool(
+	pool := NewWorkerPool(
 		WithContext(context.Background()),
 		WithIdleTimeout(3*time.Second),
 		WithPoolSize(2),
 	)
 
-	done := workerPool.Start()
-	workerPool.Start()
+	done := pool.Start()
+	pool.Start()
 
 	<-done
 }
 
 func TestLifecycle(t *testing.T) {
-	workerPool := NewWorkerPool(
+	pool := NewWorkerPool(
 		WithContext(context.Background()),
 		WithIdleTimeout(3*time.Second),
 		WithPoolSize(2),
 	)
 
-	done := workerPool.Start()
-	workerPool.AddJobs(
+	done := pool.Start()
+	pool.AddJobs(
 		func(ctx context.Context) error {
 			fmt.Println("job 1 running")
 			time.Sleep(200 * time.Millisecond)
@@ -78,32 +78,35 @@ func TestLifecycle(t *testing.T) {
 
 	for i := 0; i < 10; i++ {
 		i := i
-		workerPool.AddJobs(
+		pool.AddJobs(
 			func(ctx context.Context) error {
 				fmt.Printf("job %d running\n", i)
 				return nil
 			},
 		)
 	}
+
 	<-done
 }
 
-func BenchmarkWorkers(b *testing.B) {
-	workerPool := NewWorkerPool(
+func TestParallelRun(t *testing.T) {
+	pool := NewWorkerPool(
 		WithContext(context.Background()),
 		WithIdleTimeout(3*time.Second),
-		WithPoolSize(2),
+		WithPoolSize(5),
 	)
 
-	workerPool.Start()
-
-	for i := 0; i < b.N; i++ {
-		workerPool.AddJobs(
+	done := pool.Start()
+	t.Parallel()
+	for i := 0; i < 10; i++ {
+		i := i
+		pool.AddJobs(
 			func(ctx context.Context) error {
+				fmt.Printf("job %d running\n", i)
 				return nil
 			},
 		)
-
 	}
-	workerPool.Stop()
+
+	<-done
 }
