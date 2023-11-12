@@ -16,7 +16,8 @@ type (
 
 	workerPool struct {
 		poolSize    int32
-		running     *atomic.Bool
+		started     atomic.Bool
+		starting    chan struct{}
 		quiting     chan chan struct{}
 		done        chan struct{}
 		jobPool     chan JobRunner
@@ -48,25 +49,27 @@ func NewWorkerPool(options ...Options) WorkerPool {
 		wp.idleTimeout = 1 * time.Minute
 	}
 
-	wp.running = &atomic.Bool{}
+	wp.started = atomic.Bool{}
 	wp.jobPool = make(chan JobRunner, wp.poolSize)
+	wp.starting = make(chan struct{})
 	wp.quiting = make(chan chan struct{}, 1)
 	wp.done = make(chan struct{})
 
 	return wp
 }
 
-func (wp workerPool) Start() chan struct{} {
-	if wp.running.Load() {
-		fmt.Println("working already started")
+func (wp *workerPool) Start() chan struct{} {
+	if wp.started.Load() {
+		fmt.Println("worker already started")
 		return nil
 	}
-
-	wp.running.Store(true)
 
 	go func() {
 		for {
 			select {
+			case <-wp.starting:
+				wp.started.Store(true)
+				fmt.Println("worker started")
 			case job := <-wp.jobPool:
 				err := job(wp.ctx)
 				if err != nil {
@@ -80,19 +83,20 @@ func (wp workerPool) Start() chan struct{} {
 				wp.Stop()
 			case quit := <-wp.quiting:
 				fmt.Println("stopping worker")
-				wp.running.Store(false)
+				wp.started.Store(false)
 				quit <- struct{}{}
 				return
 			}
 		}
 	}()
+	wp.starting <- struct{}{}
 
 	return wp.done
 }
 
-func (wp workerPool) AddJobs(jobs ...JobRunner) {
-	if !wp.running.Load() {
-		fmt.Println("worker not running")
+func (wp *workerPool) AddJobs(jobs ...JobRunner) {
+	if !wp.started.Load() {
+		fmt.Println("worker not started")
 		return
 	}
 
@@ -101,13 +105,13 @@ func (wp workerPool) AddJobs(jobs ...JobRunner) {
 	}
 }
 
-func (wp workerPool) Stop() {
-	if !wp.running.Load() {
-		fmt.Println("worker not running")
+func (wp *workerPool) Stop() {
+	if !wp.started.Load() {
+		fmt.Println("worker not started")
 		return
 	}
 
-	quit := make(chan struct{})
+	quit := make(chan struct{}, 1)
 	go func(q chan struct{}) {
 		<-q
 		fmt.Println("stop finalized... closing channels")
@@ -118,7 +122,7 @@ func (wp workerPool) Stop() {
 	wp.quiting <- quit
 }
 
-func (wp workerPool) closeChannels(quit chan struct{}) {
+func (wp *workerPool) closeChannels(quit chan struct{}) {
 	close(quit)
 	close(wp.quiting)
 	close(wp.jobPool)

@@ -17,17 +17,17 @@ func TestRunTaskBeforeStarting(t *testing.T) {
 
 	pool.AddJobs(
 		func(ctx context.Context) error {
-			fmt.Println("job 1 running")
+			fmt.Println("job 1 started")
 			time.Sleep(200 * time.Millisecond)
 			return nil
 		},
 		func(ctx context.Context) error {
-			fmt.Println("job 2 running")
+			fmt.Println("job 2 started")
 			time.Sleep(2 * time.Second)
 			return errors.New("this is error")
 		},
 		func(ctx context.Context) error {
-			fmt.Println("job 3 running")
+			fmt.Println("job 3 started")
 			time.Sleep(1 * time.Second)
 			return nil
 		},
@@ -58,17 +58,17 @@ func TestLifecycle(t *testing.T) {
 	done := pool.Start()
 	pool.AddJobs(
 		func(ctx context.Context) error {
-			fmt.Println("job 1 running")
+			fmt.Println("job 1 started")
 			time.Sleep(200 * time.Millisecond)
 			return nil
 		},
 		func(ctx context.Context) error {
-			fmt.Println("job 2 running")
+			fmt.Println("job 2 started")
 			time.Sleep(2 * time.Second)
 			return errors.New("this is error")
 		},
 		func(ctx context.Context) error {
-			fmt.Println("job 3 running")
+			fmt.Println("job 3 started")
 			time.Sleep(1 * time.Second)
 			return nil
 		},
@@ -80,7 +80,7 @@ func TestLifecycle(t *testing.T) {
 		i := i
 		pool.AddJobs(
 			func(ctx context.Context) error {
-				fmt.Printf("job %d running\n", i)
+				fmt.Printf("job %d started\n", i)
 				return nil
 			},
 		)
@@ -102,7 +102,7 @@ func TestParallelRun(t *testing.T) {
 		i := i
 		pool.AddJobs(
 			func(ctx context.Context) error {
-				fmt.Printf("job %d running\n", i)
+				fmt.Printf("job %d started\n", i)
 				return nil
 			},
 		)
